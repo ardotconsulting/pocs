@@ -59,7 +59,9 @@ jobs:
           private-key: ${{ secrets.POCS_APP_PRIVATE_KEY }}
           # The stack creates poc-* repos, so the token can't be scoped to a repo list.
           owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
-          permission-administration: read
+          # write, not read: GitHub hides a repo's merge settings from tokens
+          # without it, and the plan then shows changes that aren't real.
+          permission-administration: write
           permission-metadata: read
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
