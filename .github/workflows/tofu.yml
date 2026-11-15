@@ -1,0 +1,138 @@
+name: OpenTofu
+
+# PRs: format and validate only, with no secrets, so an agent's branch can't
+# reach any credential. Push to main: plan, wait for Ryan in `production`, apply.
+# Every secret lives in the `plan` and `production` environments, which only
+# main can use (set in ardotconsulting/membership).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TOFU_VERSION: 1.13.2
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+      - run: tofu fmt -check -recursive
+      - run: tofu init -backend=false -input=false
+      - run: tofu validate
+
+  plan:
+    needs: check
+    if: github.event_name != 'pull_request' && vars.POCS_APP_CLIENT_ID != '' && vars.POCS_AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    environment: plan
+    concurrency:
+      group: tofu-main
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # AWS OIDC
+    outputs:
+      changed: ${{ steps.plan.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.POCS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.POCS_APP_PRIVATE_KEY }}
+          # The stack creates poc-* repos, so the token can't be scoped to a repo list.
+          owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
+          permission-administration: read
+          permission-metadata: read
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      # No saved plan: in a public repo anyone can download artifacts, and the
+      # plan file holds state. The readable plan (sensitive values hidden) goes
+      # to the run summary for Ryan to read before approving.
+      - name: Plan
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          tofu init -input=false
+          set +e
+          tofu plan -input=false -no-color -detailed-exitcode | tee plan.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          echo "changed=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          { echo '## OpenTofu plan'; echo '```'; tail -c 60000 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    needs: plan
+    if: needs.plan.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: tofu-main
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write # AWS OIDC
+      pull-requests: write # comment "applied" on the merged PR, which the agents watch for
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.POCS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.POCS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
+          permission-administration: write
+          permission-metadata: read
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      # ponytail: re-plans and applies what Ryan approved from the plan job's
+      # summary; the window between them is minutes and nothing else writes
+      # this state. Save the plan as an artifact only if the repo goes private.
+      - name: Apply
+        env:
+          GITHUB_TOKEN: ${{ steps.app.outputs.token }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          tofu init -input=false
+          tofu apply -input=false -no-color -auto-approve | tee apply.txt
+
+      - name: Comment on the merged PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" -q '.[0].number')
+          [ -n "$pr" ] || exit 0
+          gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body "✅ Applied: $(grep -m1 'Apply complete' apply.txt) ($RUN_URL)"
