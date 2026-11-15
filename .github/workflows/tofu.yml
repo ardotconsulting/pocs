@@ -63,6 +63,7 @@ jobs:
           # without it, and the plan then shows changes that aren't real.
           permission-administration: write
           permission-metadata: read
+          permission-repository-hooks: write # the deploy webhook on each poc-* repo
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
@@ -114,6 +115,7 @@ jobs:
           owner: ${{ github.repository_owner }} # zizmor: ignore[github-app]
           permission-administration: write
           permission-metadata: read
+          permission-repository-hooks: write # the deploy webhook on each poc-* repo
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
@@ -127,6 +129,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
+          set -o pipefail # without it, tee hides a failed apply and the job goes green
           tofu init -input=false
           tofu apply -input=false -no-color -auto-approve | tee apply.txt
 
