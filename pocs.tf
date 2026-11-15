@@ -9,6 +9,10 @@ locals {
     #   description = "Proof of concept for <post title>"
     #   port        = "8000" # the port the app's Dockerfile listens on
     # }
+    "uptime-kuma" = {
+      description = "Proof of concept for Building a Self-Hosted Monitoring Stack with Uptime Kuma"
+      port        = "3001"
+    }
   }
 }
 
