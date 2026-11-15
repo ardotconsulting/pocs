@@ -26,8 +26,10 @@ and Coolify gets each certificate itself.
    ```
 
    Change nothing else in the PR. `main` is protected: Ryan reviews and merges.
-2. Wait for Ryan to apply it. That creates the repo, the Coolify project and
-   the app (not yet deployed).
+2. Wait for the apply. After Ryan merges, CI plans, Ryan approves the
+   `production` deployment, and CI applies, creating the repo, the Coolify
+   project and the app (not yet deployed). CI then comments
+   `✅ Applied: ...` on your PR: watch for that comment instead of asking.
 3. Push the app, a `Dockerfile` and a `README.md` linking to the post to
    `poc-<slug>`, then deploy with the Coolify API:
    `POST https://coolify.ardotconsulting.com/api/v1/deploy?uuid=<app uuid>`.
@@ -39,10 +41,18 @@ an issue in this repo for Ryan instead.
 
 ## Applying (Ryan)
 
-```fish
-atofu plan    # in this directory; .env.op holds only COOLIFY_TOKEN
-atofu apply
-```
+CI does it ([`.github/workflows/tofu.yml`](.github/workflows/tofu.yml)):
 
-State is `pocs/terraform.tfstate` in the `ardotconsulting-tfstate` bucket. The
-GitHub provider uses your `gh` login (ryancheley).
+- **PRs:** `tofu fmt` and `validate` only, with no secrets.
+- **Merge to `main`:** the `plan` job writes the plan to the run summary; read
+  it, then approve the `production` deployment and the `apply` job applies and
+  comments on the PR.
+
+Secrets live only in the `plan` and `production` environments, which only
+`main` can use: `COOLIFY_TOKEN` (`coolify-lab-tofu`) and `POCS_APP_PRIVATE_KEY`
+(the `ardot-pocs-tofu` GitHub App). Repo variables: `POCS_APP_CLIENT_ID`,
+`POCS_AWS_ROLE_ARN`. State is `pocs/terraform.tfstate` in the
+`ardotconsulting-tfstate` bucket.
+
+Locally (fallback), from this directory: `atofu plan` / `atofu apply`, with the
+GitHub provider using your `gh` login.
