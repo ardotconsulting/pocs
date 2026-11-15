@@ -9,10 +9,6 @@ locals {
     #   description = "Proof of concept for <post title>"
     #   port        = "8000" # the port the app's Dockerfile listens on
     # }
-    "umami-analytics" = {
-      description = "Proof of concept for Self-Hosting Umami: Privacy-First Web Analytics"
-      port        = "3000"
-    }
   }
 }
 
