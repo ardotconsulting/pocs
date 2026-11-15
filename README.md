@@ -22,8 +22,13 @@ and Coolify gets each certificate itself.
    "invoice-ocr" = {
      description = "Proof of concept for <post title>"
      port        = "8000" # the port the app's Dockerfile listens on
+     data_path   = "/data" # optional: where the app keeps data that must
+                           # survive redeploys (a persistent volume)
    }
    ```
+
+   Set `data_path` for any app with state (users, settings, an admin account),
+   for example `/app/data` for Uptime Kuma.
 
    Change nothing else in the PR. `main` is protected: Ryan reviews and merges.
 2. Wait for the apply. After Ryan merges, CI plans, Ryan approves the
@@ -31,8 +36,15 @@ and Coolify gets each certificate itself.
    project and the app (not yet deployed). CI then comments
    `✅ Applied: ...` on your PR: watch for that comment instead of asking.
 3. Push the app, a `Dockerfile` and a `README.md` linking to the post to
-   `poc-<slug>`, then deploy with the Coolify API:
+   `main` of `poc-<slug>`. **Every push to `main` deploys** (a webhook calls
+   Coolify), so don't push code you don't want live. If a deploy needs
+   retrying without a new commit, use the Coolify API:
    `POST https://coolify.ardotconsulting.com/api/v1/deploy?uuid=<app uuid>`.
+
+   **If the app gives admin to its first visitor** (Uptime Kuma, for example),
+   ask Ryan before the first push that makes it runnable, because that push
+   deploys it; Ryan claims the admin right after. With `data_path` set, the
+   admin survives later deploys, so you only ask once.
 4. Link the POC from the post with a PR on `ardotconsulting-site`.
 
 Only proofs of concept that run as one container from a `Dockerfile` fit here.
