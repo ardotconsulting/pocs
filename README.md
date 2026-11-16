@@ -30,6 +30,12 @@ and Coolify gets each certificate itself.
    Set `data_path` for any app with state (users, settings, an admin account),
    for example `/app/data` for Uptime Kuma.
 
+   If the app needs a password or other secret as an environment variable
+   (Flame's `PASSWORD`, for example), add `generated_secrets = ["PASSWORD"]`:
+   OpenTofu generates a random value and sets it on the app before its first
+   deploy, so it's never live unprotected and nobody handles the value. Ryan
+   reads it in Coolify. Never put a secret value in the PR or the repo.
+
    Change nothing else in the PR. `main` is protected: Ryan reviews and merges.
 2. Wait for the apply. After Ryan merges, CI plans, Ryan approves the
    `production` deployment, and CI applies, creating the repo, the Coolify
