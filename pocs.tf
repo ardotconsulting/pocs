@@ -15,6 +15,12 @@ locals {
       port        = "3001"
       data_path   = "/app/data" # admin, monitors and status page survive redeploys
     }
+
+    "flame-dashboard" = {
+      description = "Proof of concept for Self-Hosting Flame Dashboard: Centralize Access to All Your Self-Hosted Tools"
+      port        = "5005"
+      data_path   = "/app/data" # apps, bookmarks, themes and settings survive redeploys
+    }
   }
 }
 
