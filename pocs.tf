@@ -21,6 +21,8 @@ locals {
       description = "Proof of concept for Self-Hosting Flame Dashboard: Centralize Access to All Your Self-Hosted Tools"
       port        = "5005"
       data_path   = "/app/data" # apps, bookmarks, themes and settings survive redeploys
+      # Flame's login; without it anyone can edit the dashboard.
+      generated_secrets = ["PASSWORD"]
     }
   }
 }
