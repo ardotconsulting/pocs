@@ -24,6 +24,12 @@ locals {
       # Flame's login; without it anyone can edit the dashboard.
       generated_secrets = ["PASSWORD"]
     }
+
+    "ghost" = {
+      description = "Proof of concept for Self-Hosting Ghost: Replace Medium and Substack With Your Own Publishing Platform"
+      port        = "2368"
+      data_path   = "/var/lib/ghost/content" # posts, images and settings survive redeploys
+    }
   }
 }
 
