@@ -48,8 +48,10 @@ resource "github_repository_collaborator" "poc_agents" {
 resource "coolify_project" "poc" {
   for_each = local.pocs
 
-  name        = "poc-${each.key}"
-  description = each.value.description
+  name = "poc-${each.key}"
+  # Coolify only accepts letters, numbers, spaces and - _ . , ! ? ( ) ' " + = * / @ &
+  # in descriptions; post titles often have a colon. GitHub keeps the original.
+  description = trimspace(replace(each.value.description, "/[^\\p{L}\\p{N} _.,!?()'\"+=*/@&-]+/", " "))
 }
 
 # Not deployed on create: the repo starts empty. Every push to main deploys it
