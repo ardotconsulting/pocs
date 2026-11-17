@@ -10,11 +10,13 @@ locals {
     #   port        = "8000" # the port the app's Dockerfile listens on
     #   data_path   = "/data" # optional: kept across redeploys (a Coolify volume)
     #   generated_secrets = ["PASSWORD"] # optional: random runtime env vars, see below
+    #   flame_path  = "/status/demo" # optional: where the Flame tile points, if not /
     # }
     "uptime-kuma" = {
       description = "Proof of concept for Building a Self-Hosted Monitoring Stack with Uptime Kuma"
       port        = "3001"
-      data_path   = "/app/data" # admin, monitors and status page survive redeploys
+      data_path   = "/app/data"    # admin, monitors and status page survive redeploys
+      flame_path  = "/status/kuma" # the public status page; / is the admin login
     }
 
     "flame-dashboard" = {
@@ -170,7 +172,7 @@ locals {
   flame_tiles = contains(keys(local.pocs), "flame-dashboard") ? {
     for k, v in local.pocs : k => {
       name        = title(replace(k, "-", " "))
-      url         = "https://${k}.poc.ardotconsulting.com"
+      url         = "https://${k}.poc.ardotconsulting.com${try(v.flame_path, "")}"
       description = trimprefix(v.description, "Proof of concept for ")
     } if k != "flame-dashboard"
   } : {}

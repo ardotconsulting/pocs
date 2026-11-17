@@ -28,7 +28,9 @@ and Coolify gets each certificate itself.
    ```
 
    Set `data_path` for any app with state (users, settings, an admin account),
-   for example `/app/data` for Uptime Kuma.
+   for example `/app/data` for Uptime Kuma. If the app's front page is a login
+   rather than something visitors can use, set `flame_path` to the public page
+   (Uptime Kuma: `/status/kuma`) so its Flame tile points there.
 
    If the app needs a password or other secret as an environment variable
    (Flame's `PASSWORD`, for example), add `generated_secrets = ["PASSWORD"]`:
