@@ -10,8 +10,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   TOFU_VERSION: 1.13.2
@@ -19,11 +18,13 @@ env:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+      - uses: opentofu/setup-opentofu@v2.0.2
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
@@ -46,15 +47,15 @@ jobs:
       changed: ${{ steps.plan.outputs.changed }}
       destroys: ${{ steps.plan.outputs.destroys }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+      - uses: opentofu/setup-opentofu@v2.0.2
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
       - id: app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@v3.3.0
         with:
           client-id: ${{ vars.POCS_APP_CLIENT_ID }}
           private-key: ${{ secrets.POCS_APP_PRIVATE_KEY }}
@@ -65,7 +66,7 @@ jobs:
           permission-administration: write
           permission-metadata: read
           permission-repository-hooks: write # the deploy webhook on each poc-* repo
-      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
           aws-region: us-west-2
@@ -111,15 +112,15 @@ jobs:
       id-token: write # AWS OIDC
       pull-requests: write # comment "applied" on the merged PR, which the agents watch for
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+      - uses: opentofu/setup-opentofu@v2.0.2
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
       - id: app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@v3.3.0
         with:
           client-id: ${{ vars.POCS_APP_CLIENT_ID }}
           private-key: ${{ secrets.POCS_APP_PRIVATE_KEY }}
@@ -127,7 +128,7 @@ jobs:
           permission-administration: write
           permission-metadata: read
           permission-repository-hooks: write # the deploy webhook on each poc-* repo
-      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
           aws-region: us-west-2
