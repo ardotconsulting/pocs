@@ -69,12 +69,14 @@ an issue in this repo for Ryan instead.
 CI does it ([`.github/workflows/tofu.yml`](.github/workflows/tofu.yml)):
 
 - **PRs:** `tofu fmt` and `validate` only, with no secrets.
-- **Merge to `main`:** the `plan` job writes the plan to the run summary; read
-  it, then approve the `production` deployment and the `apply` job applies and
-  comments on the PR.
+- **Merge to `main`:** the `plan` job writes the plan to the run summary. If
+  the plan destroys nothing, the `apply` job applies it straight away (the
+  `apply` environment has no reviewers). If it destroys anything, including a
+  replacement, it waits for Ryan to approve the `production` deployment. Either
+  way it comments `✅ Applied` on the PR.
 
-Secrets live only in the `plan` and `production` environments, which only
-`main` can use: `COOLIFY_TOKEN` (`coolify-lab-tofu`) and `POCS_APP_PRIVATE_KEY`
+Secrets live only in the `plan`, `apply` and `production` environments, which
+only `main` can use: `COOLIFY_TOKEN` (`coolify-lab-tofu`) and `POCS_APP_PRIVATE_KEY`
 (the `ardot-pocs-tofu` GitHub App). Repo variables: `POCS_APP_CLIENT_ID`,
 `POCS_AWS_ROLE_ARN`. State is `pocs/terraform.tfstate` in the
 `ardotconsulting-tfstate` bucket.
