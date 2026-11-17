@@ -53,6 +53,11 @@ and Coolify gets each certificate itself.
    admin survives later deploys, so you only ask once.
 4. Link the POC from the post with a PR on `ardotconsulting-site`.
 
+Every POC also gets a public tile on the
+[Flame dashboard](https://flame-dashboard.poc.ardotconsulting.com), added when
+it's created and removed when its entry goes (`flame-tile.sh`, run by
+OpenTofu); nothing to do by hand.
+
 Only proofs of concept that run as one container from a `Dockerfile` fit here.
 Anything that needs a database, another domain or other infrastructure: open
 an issue in this repo for Ryan instead.
