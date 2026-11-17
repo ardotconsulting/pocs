@@ -44,6 +44,7 @@ jobs:
       id-token: write # AWS OIDC
     outputs:
       changed: ${{ steps.plan.outputs.changed }}
+      destroys: ${{ steps.plan.outputs.destroys }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,18 +81,28 @@ jobs:
         run: |
           tofu init -input=false
           set +e
-          tofu plan -input=false -no-color -detailed-exitcode | tee plan.txt
+          tofu plan -input=false -no-color -detailed-exitcode -out=tfplan | tee plan.txt
           code=${PIPESTATUS[0]}
           set -e
           if [ "$code" -eq 1 ]; then exit 1; fi
           echo "changed=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          { echo '## OpenTofu plan'; echo '```'; tail -c 60000 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # Plans that destroy anything (including replacements) wait for Ryan
+          # in `production`; plans that only add or change apply straight away.
+          destroys=$(tofu show -json tfplan | jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length')
+          echo "destroys=$destroys" >> "$GITHUB_OUTPUT"
+          {
+            echo '## OpenTofu plan'
+            if [ "$destroys" -gt 0 ]; then echo "**$destroys resource(s) destroyed: waits for Ryan's approval in \`production\`.**"; else echo 'Nothing destroyed: applies without approval.'; fi
+            echo '```'; tail -c 60000 plan.txt; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   apply:
     needs: plan
     if: needs.plan.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    environment: production
+    # `apply` has no reviewers; `production` needs Ryan. Anything other than a
+    # plan with exactly 0 destroys goes to production.
+    environment: ${{ needs.plan.outputs.destroys == '0' && 'apply' || 'production' }}
     concurrency:
       group: tofu-main
       cancel-in-progress: false
@@ -121,17 +132,27 @@ jobs:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
           aws-region: us-west-2
 
-      # ponytail: re-plans and applies what Ryan approved from the plan job's
-      # summary; the window between them is minutes and nothing else writes
-      # this state. Save the plan as an artifact only if the repo goes private.
+      # ponytail: re-plans rather than reusing the plan job's file (a public
+      # repo's artifacts are downloadable, and a plan holds state). The window
+      # is minutes and nothing else writes this state; the destroy re-check
+      # below keeps a new destroy from skipping Ryan's approval.
       - name: Apply
         env:
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          DEPLOY_ENV: ${{ needs.plan.outputs.destroys == '0' && 'apply' || 'production' }}
         run: |
           set -o pipefail # without it, tee hides a failed apply and the job goes green
           tofu init -input=false
-          tofu apply -input=false -no-color -auto-approve | tee apply.txt
+          tofu plan -input=false -no-color -out=tfplan >/dev/null
+          # Re-check here: if something to destroy appeared since the plan job,
+          # don't apply it without Ryan's approval.
+          destroys=$(tofu show -json tfplan | jq '[.resource_changes[]? | select(.change.actions | index("delete"))] | length')
+          if [ "$destroys" -gt 0 ] && [ "$DEPLOY_ENV" != production ]; then
+            echo "::error::The plan now destroys $destroys resource(s); re-run so it goes through production approval."
+            exit 1
+          fi
+          tofu apply -input=false -no-color tfplan | tee apply.txt
 
       - name: Comment on the merged PR
         env:
