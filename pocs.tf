@@ -32,6 +32,12 @@ locals {
       port        = "2368"
       data_path   = "/var/lib/ghost/content" # posts, images and settings survive redeploys
     }
+
+    "nocodb" = {
+      description = "Proof of concept for Self-Hosting NocoDB: Replace Airtable with Your Own No-Code Database Platform"
+      port        = "8080"
+      data_path   = "/usr/app/data" # bases, tables and admin account survive redeploys
+    }
   }
 }
 
