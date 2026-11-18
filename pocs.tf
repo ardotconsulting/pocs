@@ -12,6 +12,7 @@ locals {
     #   generated_secrets = ["PASSWORD"] # optional: random runtime env vars, see below
     #   flame_path  = "/status/demo" # optional: where the Flame tile points, if not /
     #   post_deploy = "sh /setup-admin.sh" # optional: runs in the container after each deploy
+    #   display_name = "Invoice OCR" # optional: Flame tile and Uptime Kuma monitor name
     # }
     "uptime-kuma" = {
       description = "Proof of concept for Building a Self-Hosted Monitoring Stack with Uptime Kuma"
@@ -35,12 +36,14 @@ locals {
     }
 
     "nocodb" = {
-      description = "Proof of concept for Self-Hosting NocoDB: Replace Airtable with Your Own No-Code Database Platform"
-      port        = "8080"
-      data_path   = "/usr/app/data" # bases, tables and admin account survive redeploys
+      display_name = "NocoDB"
+      description  = "Proof of concept for Self-Hosting NocoDB: Replace Airtable with Your Own No-Code Database Platform"
+      port         = "8080"
+      data_path    = "/usr/app/data" # bases, tables and admin account survive redeploys
     }
 
     "n8n" = {
+      display_name      = "n8n"
       description       = "Proof of concept for How to Build Your First AI Automation Workflow with n8n"
       port              = "5678"
       data_path         = "/home/node/.n8n"      # workflows, credentials and owner account survive redeploys
@@ -191,7 +194,7 @@ locals {
   flame_url = "https://flame-dashboard.poc.ardotconsulting.com"
   flame_tiles = contains(keys(local.pocs), "flame-dashboard") ? {
     for k, v in local.pocs : k => {
-      name        = title(replace(k, "-", " "))
+      name        = try(v.display_name, title(replace(k, "-", " ")))
       url         = "https://${k}.poc.ardotconsulting.com${try(v.flame_path, "")}"
       description = trimprefix(v.description, "Proof of concept for ")
     } if k != "flame-dashboard"
@@ -302,16 +305,18 @@ resource "github_repository_ruleset" "poc_main" {
 }
 
 # Uptime Kuma monitors: every POC except Uptime Kuma itself gets an HTTP monitor
-# named like its Flame tile, added when it's created and removed when its entry
-# goes. kuma-monitor.py speaks Uptime Kuma's Socket.IO API (it has no REST API
+# named like its Flame tile, listed in the "Proofs of concept" group of the
+# public status page, added when it's created and removed when its entry goes. kuma-monitor.py speaks Uptime Kuma's Socket.IO API (it has no REST API
 # for monitors) as the admin; KUMA_USERNAME and KUMA_PASSWORD come from the
 # CI environment, never from state. Monitors added by hand aren't touched.
 locals {
-  kuma_url = "https://uptime-kuma.poc.ardotconsulting.com"
+  kuma_url         = "https://uptime-kuma.poc.ardotconsulting.com"
+  kuma_status_page = "kuma" # public page; POCs go in its "Proofs of concept" group
   kuma_monitors = contains(keys(local.pocs), "uptime-kuma") ? {
     for k, v in local.pocs : k => {
-      name = title(replace(k, "-", " "))
-      url  = "https://${k}.poc.ardotconsulting.com${try(v.flame_path, "")}"
+      name        = try(v.display_name, title(replace(k, "-", " ")))
+      url         = "https://${k}.poc.ardotconsulting.com${try(v.flame_path, "")}"
+      status_page = local.kuma_status_page
     } if k != "uptime-kuma"
   } : {}
 }
@@ -327,9 +332,10 @@ resource "terraform_data" "kuma_monitor" {
   provisioner "local-exec" {
     command = "python3 ${path.module}/kuma-monitor.py add"
     environment = {
-      KUMA_URL     = self.input.kuma_url
-      MONITOR_NAME = self.input.name
-      MONITOR_URL  = self.input.url
+      KUMA_URL         = self.input.kuma_url
+      KUMA_STATUS_PAGE = self.input.status_page
+      MONITOR_NAME     = self.input.name
+      MONITOR_URL      = self.input.url
     }
   }
 
@@ -337,8 +343,9 @@ resource "terraform_data" "kuma_monitor" {
     when    = destroy
     command = "python3 ${path.module}/kuma-monitor.py remove"
     environment = {
-      KUMA_URL     = self.input.kuma_url
-      MONITOR_NAME = self.input.name
+      KUMA_URL         = self.input.kuma_url
+      KUMA_STATUS_PAGE = self.input.status_page
+      MONITOR_NAME     = self.input.name
     }
   }
 }

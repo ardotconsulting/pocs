@@ -73,8 +73,10 @@ Every POC also gets a public tile on the
 [Flame dashboard](https://flame-dashboard.poc.ardotconsulting.com), added when
 it's created and removed when its entry goes (`flame-tile.sh`, run by
 OpenTofu), and an HTTP monitor in
-[Uptime Kuma](https://uptime-kuma.poc.ardotconsulting.com) (`kuma-monitor.py`);
-nothing to do by hand.
+[Uptime Kuma](https://uptime-kuma.poc.ardotconsulting.com) (`kuma-monitor.py`),
+listed on its [public status page](https://uptime-kuma.poc.ardotconsulting.com/status/kuma);
+nothing to do by hand. Both are named from the slug, or from `display_name` when
+capitalising the slug gets it wrong (`n8n`, `NocoDB`).
 
 Only proofs of concept that run as one container from a `Dockerfile` fit here.
 Anything that needs a database, another domain or other infrastructure: open
