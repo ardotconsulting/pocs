@@ -343,8 +343,9 @@ resource "terraform_data" "kuma_monitor" {
     when    = destroy
     command = "python3 ${path.module}/kuma-monitor.py remove"
     environment = {
-      KUMA_URL         = self.input.kuma_url
-      KUMA_STATUS_PAGE = self.input.status_page
+      KUMA_URL = self.input.kuma_url
+      # Monitors created before status_page existed don't have it in state.
+      KUMA_STATUS_PAGE = try(self.input.status_page, "kuma")
       MONITOR_NAME     = self.input.name
     }
   }
