@@ -39,6 +39,7 @@ and Coolify gets each certificate itself.
    reads it in Coolify. Never put a secret value in the PR or the repo.
 
    Change nothing else in the PR. `main` is protected: Ryan reviews and merges.
+   Don't worry about `tofu fmt`: CI fixes the formatting on your branch.
 2. Wait for the apply. After Ryan merges, CI plans, Ryan approves the
    `production` deployment, and CI applies, creating the repo, the Coolify
    project and the app (not yet deployed). CI then comments
