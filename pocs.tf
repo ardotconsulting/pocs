@@ -232,3 +232,71 @@ resource "terraform_data" "flame_tile" {
 
   depends_on = [coolify_environment_variable.poc_secret]
 }
+
+# Smoke test and protected main in every POC repo: a merge into main deploys,
+# so main only takes PRs whose smoke check passes (no human approval needed;
+# the agents merge their own green PRs). Ryan and this stack's GitHub App can
+# bypass. Writing the workflow pushes to main, which redeploys the app once.
+locals {
+  pocs_app_id = 5773899 # GitHub App ardot-pocs-tofu
+}
+
+resource "github_repository_file" "poc_smoke" {
+  for_each = local.pocs
+
+  repository = github_repository.poc[each.key].name
+  branch     = "main"
+  file       = ".github/workflows/smoke.yml"
+  content = templatefile("${path.module}/smoke.yml.tftpl", {
+    port        = each.value.port
+    secrets     = try(each.value.generated_secrets, [])
+    post_deploy = try(each.value.post_deploy, "")
+  })
+  commit_message      = "🧪 Smoke test (managed by ardotconsulting/pocs)"
+  overwrite_on_create = true
+}
+
+resource "github_repository_ruleset" "poc_main" {
+  for_each = local.pocs
+
+  name        = "smoke-tested main"
+  repository  = github_repository.poc[each.key].name
+  target      = "branch"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~DEFAULT_BRANCH"]
+      exclude = []
+    }
+  }
+
+  bypass_actors {
+    actor_id    = 0 # GitHub stores 0 for OrganizationAdmin
+    actor_type  = "OrganizationAdmin"
+    bypass_mode = "always"
+  }
+
+  bypass_actors {
+    actor_id    = local.pocs_app_id
+    actor_type  = "Integration"
+    bypass_mode = "always"
+  }
+
+  rules {
+    deletion         = true
+    non_fast_forward = true
+
+    pull_request {
+      required_approving_review_count = 0
+    }
+
+    required_status_checks {
+      required_check {
+        context = "smoke"
+      }
+    }
+  }
+
+  depends_on = [github_repository_file.poc_smoke]
+}

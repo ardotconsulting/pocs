@@ -44,9 +44,12 @@ and Coolify gets each certificate itself.
    `production` deployment, and CI applies, creating the repo, the Coolify
    project and the app (not yet deployed). CI then comments
    `✅ Applied: ...` on your PR: watch for that comment instead of asking.
-3. Push the app, a `Dockerfile` and a `README.md` linking to the post to
-   `main` of `poc-<slug>`. **Every push to `main` deploys** (a webhook calls
-   Coolify), so don't push code you don't want live. If a deploy needs
+3. Put the app, a `Dockerfile` and a `README.md` linking to the post on a
+   **branch** of `poc-<slug>` and open a PR there. Its **smoke** check builds the
+   image, starts it, waits for it to answer on the entry's port, and runs
+   `post_deploy` twice if set. When it passes, merge the PR yourself (no review
+   needed); **the merge deploys it** (a webhook calls Coolify). `main` only takes
+   PRs with a passing smoke check, so a broken build never goes live. If a deploy needs
    retrying without a new commit, use the Coolify API:
    `POST https://coolify.ardotconsulting.com/api/v1/deploy?uuid=<app uuid>`.
 
