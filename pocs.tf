@@ -48,8 +48,9 @@ locals {
     }
 
     "roi-calculator" = {
-      description = "Proof of concept for The Real ROI of AI Automation: How to Measure It"
-      port        = "80"
+      display_name = "ROI Calculator"
+      description  = "Proof of concept for The Real ROI of AI Automation: How to Measure It"
+      port         = "80"
     }
   }
 }
