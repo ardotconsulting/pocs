@@ -13,6 +13,7 @@ Env: KUMA_URL, KUMA_USERNAME, KUMA_PASSWORD, KUMA_STATUS_PAGE, MONITOR_NAME,
      and for add MONITOR_URL
 """
 
+import fcntl
 import json
 import os
 import sys
@@ -67,12 +68,23 @@ def update_status_page(monitor_id=None):
         return
     else:
         groups.remove(group)
-    # Keep each monitor's per-page settings (send/custom URL) as they were.
+    # Keep each monitor's per-page settings (send/custom URL) as they were, and
+    # drop duplicates (concurrent saves once listed a monitor twice).
     for g in groups:
-        g["monitorList"] = [{k: m[k] for k in ("id", "sendUrl", "url") if k in m} for m in g["monitorList"]]
+        seen = set()
+        g["monitorList"] = [
+            {k: m[k] for k in ("id", "sendUrl", "url") if k in m}
+            for m in g["monitorList"]
+            if not (m["id"] in seen or seen.add(m["id"]))
+        ]
     config["logo"] = config.get("icon")
     sio.call("saveStatusPage", (slug, config, config.get("icon") or "", groups), timeout=30)
 
+
+# OpenTofu runs one of these per POC in parallel, and saving the status page is
+# read-modify-write, so take turns (they all run on the same machine).
+lock = open(os.path.join(os.environ.get("TMPDIR", "/tmp"), "kuma-monitor.lock"), "w")
+fcntl.flock(lock, fcntl.LOCK_EX)
 
 sio.connect(os.environ["KUMA_URL"], transports=["websocket"], wait_timeout=30)
 try:
