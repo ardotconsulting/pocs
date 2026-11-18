@@ -75,7 +75,9 @@ it's created and removed when its entry goes (`flame-tile.sh`, run by
 OpenTofu), and an HTTP monitor in
 [Uptime Kuma](https://uptime-kuma.poc.ardotconsulting.com) (`kuma-monitor.py`),
 listed on its [public status page](https://uptime-kuma.poc.ardotconsulting.com/status/kuma);
-nothing to do by hand. Both are named from the slug, or from `display_name` when
+nothing to do by hand. Until the app is serving, the monitor is paused and off the
+status page and the tile is hidden; `activate.yml` switches them on within 15
+minutes of the first successful deploy. Both are named from the slug, or from `display_name` when
 capitalising the slug gets it wrong (`n8n`, `NocoDB`).
 
 Only proofs of concept that run as one container from a `Dockerfile` fit here.
@@ -96,7 +98,8 @@ CI does it ([`.github/workflows/tofu.yml`](.github/workflows/tofu.yml)):
 Secrets live only in the `plan`, `apply` and `production` environments, which
 only `main` can use: `COOLIFY_TOKEN` (`coolify-lab-tofu`) and `POCS_APP_PRIVATE_KEY`
 (the `ardot-pocs-tofu` GitHub App), `KUMA_USERNAME` and `KUMA_PASSWORD`
-(the Uptime Kuma admin, `poc-uptime-kuma-admin`). Repo variables: `POCS_APP_CLIENT_ID`,
+(the Uptime Kuma admin, `poc-uptime-kuma-admin`). `activate.yml` also uses
+`FLAME_PASSWORD` (`poc-flame-dashboard-admin`), in `apply` only. Repo variables: `POCS_APP_CLIENT_ID`,
 `POCS_AWS_ROLE_ARN`. State is `pocs/terraform.tfstate` in the
 `ardotconsulting-tfstate` bucket.
 

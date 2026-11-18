@@ -1,0 +1,41 @@
+name: Activate live POCs
+
+# New POCs get a paused Uptime Kuma monitor and a hidden Flame tile until their
+# app is serving. Every 15 minutes, switch on the ones that have gone live:
+# resume the monitor, add it to the public status page, make the tile public.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    environment: apply # the Uptime Kuma and Flame logins; only main can use it
+    concurrency:
+      group: activate-live-pocs
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Uptime Kuma script dependencies (pinned, hashed)
+        run: python3 -m pip install --quiet --require-hashes -r kuma-requirements.txt
+      - name: Uptime Kuma monitors
+        env:
+          KUMA_URL: https://uptime-kuma.poc.ardotconsulting.com
+          KUMA_STATUS_PAGE: kuma
+          KUMA_USERNAME: ${{ secrets.KUMA_USERNAME }}
+          KUMA_PASSWORD: ${{ secrets.KUMA_PASSWORD }}
+        run: python3 kuma-monitor.py activate
+      - name: Flame tiles
+        env:
+          FLAME_URL: https://flame-dashboard.poc.ardotconsulting.com
+          FLAME_PASSWORD: ${{ secrets.FLAME_PASSWORD }}
+        run: |
+          [ -n "$FLAME_PASSWORD" ] || { echo "::notice::FLAME_PASSWORD isn't set in the apply environment; skipping Flame."; exit 0; }
+          ./flame-tile.sh activate
