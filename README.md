@@ -49,10 +49,20 @@ and Coolify gets each certificate itself.
    retrying without a new commit, use the Coolify API:
    `POST https://coolify.ardotconsulting.com/api/v1/deploy?uuid=<app uuid>`.
 
-   **If the app gives admin to its first visitor** (Uptime Kuma, for example),
-   ask Ryan before the first push that makes it runnable, because that push
-   deploys it; Ryan claims the admin right after. With `data_path` set, the
-   admin survives later deploys, so you only ask once.
+   **If the app gives admin to its first visitor** (Ghost, n8n, Metabase…),
+   claim it automatically instead of waiting for Ryan:
+   - Add `generated_secrets = ["ADMIN_PASSWORD"]` and
+     `post_deploy = "sh /setup-admin.sh"` to the entry.
+   - In the POC repo, add `setup-admin.sh` and copy it to `/setup-admin.sh` in
+     the `Dockerfile`. It waits until the app answers, then claims the admin
+     through the app's own setup API as `admin@ardotconsulting.com` with
+     `$ADMIN_PASSWORD`, and does nothing if setup is already done. Use only tools
+     the image has (`wget`, `curl` or `node`).
+   - Coolify runs it inside the container after every deploy. Ryan reads the
+     password in the app's Environment Variables in Coolify.
+   Only if the app's setup can't be scripted (Uptime Kuma's runs over a
+   websocket), ask Ryan on the `pocs` PR before the first push that makes it
+   runnable, and wait for his `go`.
 4. Link the POC from the post with a PR on `ardotconsulting-site`.
 
 Every POC also gets a public tile on the
