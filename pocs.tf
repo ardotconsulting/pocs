@@ -11,6 +11,7 @@ locals {
     #   data_path   = "/data" # optional: kept across redeploys (a Coolify volume)
     #   generated_secrets = ["PASSWORD"] # optional: random runtime env vars, see below
     #   flame_path  = "/status/demo" # optional: where the Flame tile points, if not /
+    #   post_deploy = "sh /setup-admin.sh" # optional: runs in the container after each deploy
     # }
     "uptime-kuma" = {
       description = "Proof of concept for Building a Self-Hosted Monitoring Stack with Uptime Kuma"
@@ -92,6 +93,12 @@ resource "coolify_application" "poc" {
   build_pack       = "dockerfile"
   ports_exposes    = each.value.port
   domains          = "https://${each.key}.poc.ardotconsulting.com"
+
+  # Runs inside the container after each deploy. Apps that give admin to their
+  # first visitor use it to claim the admin through their own setup API with a
+  # generated ADMIN_PASSWORD, seconds after the deploy (scripts must be safe to
+  # re-run). See the README.
+  post_deployment_command = try(each.value.post_deploy, null)
 
   # Checks GitHub's signature on the webhook below. Our token can't read it
   # back, so the provider keeps the value from state.
