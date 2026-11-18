@@ -40,9 +40,9 @@ locals {
     }
 
     "n8n" = {
-      description = "Proof of concept for How to Build Your First AI Automation Workflow with n8n"
-      port        = "5678"
-      data_path   = "/home/node/.n8n" # workflows, credentials and owner account survive redeploys
+      description       = "Proof of concept for How to Build Your First AI Automation Workflow with n8n"
+      port              = "5678"
+      data_path         = "/home/node/.n8n"      # workflows, credentials and owner account survive redeploys
       generated_secrets = ["N8N_ENCRYPTION_KEY"] # encrypts stored credentials; OpenTofu generates it
     }
   }
