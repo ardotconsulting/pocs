@@ -147,6 +147,10 @@ resource "github_repository_webhook" "poc_deploy" {
     secret       = random_password.poc_webhook[each.key].result
     insecure_ssl = false
   }
+
+  # Created after the smoke workflow is committed, so that commit doesn't
+  # trigger a deploy of a repo that has no app yet.
+  depends_on = [github_repository_file.poc_smoke]
 }
 
 # Persistent storage for entries with data_path: a Coolify volume mounted there,
