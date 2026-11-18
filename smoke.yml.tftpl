@@ -1,0 +1,47 @@
+# Managed by ardotconsulting/pocs (OpenTofu, smoke.yml.tftpl). Changes made here
+# are overwritten; edit the template there.
+#
+# Every PR must build, start and answer on its port before it can merge into
+# main (where a merge deploys it).
+name: Smoke test
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build
+        run: docker build -t poc .
+
+      - name: Start and wait for it to answer
+        run: |
+          docker run -d --name poc -p 8080:${port}%{ for name in secrets } -e ${name}="$(openssl rand -hex 24)"%{ endfor } poc
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%%{http_code}' -m 5 http://localhost:8080/ || true)
+            if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then echo "Answered HTTP $code after about $((i * 5))s."; exit 0; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' poc)" != true ]; then echo "::error::The container stopped."; exit 1; fi
+            sleep 5
+          done
+          echo "::error::No answer on port ${port} within 5 minutes (last HTTP code: $code)."
+          exit 1
+%{ if post_deploy != "" }
+      - name: Run the post-deploy command twice (it must be safe to re-run)
+        run: |
+          docker exec poc ${post_deploy}
+          docker exec poc ${post_deploy}
+%{ endif }
+      - name: Container logs
+        if: always()
+        run: docker logs poc 2>&1 | tail -100 || true

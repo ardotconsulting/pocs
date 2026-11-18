@@ -66,6 +66,8 @@ jobs:
           permission-administration: write
           permission-metadata: read
           permission-repository-hooks: write # the deploy webhook on each poc-* repo
+          permission-contents: write # the smoke-test workflow file in each poc-* repo
+          permission-workflows: write # ...which is under .github/workflows
       - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
@@ -128,6 +130,8 @@ jobs:
           permission-administration: write
           permission-metadata: read
           permission-repository-hooks: write # the deploy webhook on each poc-* repo
+          permission-contents: write # the smoke-test workflow file in each poc-* repo
+          permission-workflows: write # ...which is under .github/workflows
       - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.POCS_AWS_ROLE_ARN }}
