@@ -72,7 +72,9 @@ and Coolify gets each certificate itself.
 Every POC also gets a public tile on the
 [Flame dashboard](https://flame-dashboard.poc.ardotconsulting.com), added when
 it's created and removed when its entry goes (`flame-tile.sh`, run by
-OpenTofu); nothing to do by hand.
+OpenTofu), and an HTTP monitor in
+[Uptime Kuma](https://uptime-kuma.poc.ardotconsulting.com) (`kuma-monitor.py`);
+nothing to do by hand.
 
 Only proofs of concept that run as one container from a `Dockerfile` fit here.
 Anything that needs a database, another domain or other infrastructure: open
@@ -91,7 +93,8 @@ CI does it ([`.github/workflows/tofu.yml`](.github/workflows/tofu.yml)):
 
 Secrets live only in the `plan`, `apply` and `production` environments, which
 only `main` can use: `COOLIFY_TOKEN` (`coolify-lab-tofu`) and `POCS_APP_PRIVATE_KEY`
-(the `ardot-pocs-tofu` GitHub App). Repo variables: `POCS_APP_CLIENT_ID`,
+(the `ardot-pocs-tofu` GitHub App), `KUMA_USERNAME` and `KUMA_PASSWORD`
+(the Uptime Kuma admin, `poc-uptime-kuma-admin`). Repo variables: `POCS_APP_CLIENT_ID`,
 `POCS_AWS_ROLE_ARN`. State is `pocs/terraform.tfstate` in the
 `ardotconsulting-tfstate` bucket.
 

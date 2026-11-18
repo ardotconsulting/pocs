@@ -300,3 +300,45 @@ resource "github_repository_ruleset" "poc_main" {
 
   depends_on = [github_repository_file.poc_smoke]
 }
+
+# Uptime Kuma monitors: every POC except Uptime Kuma itself gets an HTTP monitor
+# named like its Flame tile, added when it's created and removed when its entry
+# goes. kuma-monitor.py speaks Uptime Kuma's Socket.IO API (it has no REST API
+# for monitors) as the admin; KUMA_USERNAME and KUMA_PASSWORD come from the
+# CI environment, never from state. Monitors added by hand aren't touched.
+locals {
+  kuma_url = "https://uptime-kuma.poc.ardotconsulting.com"
+  kuma_monitors = contains(keys(local.pocs), "uptime-kuma") ? {
+    for k, v in local.pocs : k => {
+      name = title(replace(k, "-", " "))
+      url  = "https://${k}.poc.ardotconsulting.com${try(v.flame_path, "")}"
+    } if k != "uptime-kuma"
+  } : {}
+}
+
+resource "terraform_data" "kuma_monitor" {
+  for_each = local.kuma_monitors
+
+  # Destroy-time provisioners can only read self, so the removal reads
+  # everything it needs from here.
+  input            = merge(each.value, { kuma_url = local.kuma_url })
+  triggers_replace = each.value
+
+  provisioner "local-exec" {
+    command = "python3 ${path.module}/kuma-monitor.py add"
+    environment = {
+      KUMA_URL     = self.input.kuma_url
+      MONITOR_NAME = self.input.name
+      MONITOR_URL  = self.input.url
+    }
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "python3 ${path.module}/kuma-monitor.py remove"
+    environment = {
+      KUMA_URL     = self.input.kuma_url
+      MONITOR_NAME = self.input.name
+    }
+  }
+}

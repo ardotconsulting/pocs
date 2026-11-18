@@ -172,8 +172,13 @@ jobs:
       # repo's artifacts are downloadable, and a plan holds state). The window
       # is minutes and nothing else writes this state; the destroy re-check
       # below keeps a new destroy from skipping Ryan's approval.
+      - name: Install Uptime Kuma script dependencies (pinned, hashed)
+        run: python3 -m pip install --quiet --require-hashes -r kuma-requirements.txt
+
       - name: Apply
         env:
+          KUMA_USERNAME: ${{ secrets.KUMA_USERNAME }}
+          KUMA_PASSWORD: ${{ secrets.KUMA_PASSWORD }}
           GITHUB_TOKEN: ${{ steps.app.outputs.token }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           DEPLOY_ENV: ${{ needs.plan.outputs.destroys == '0' && 'apply' || 'production' }}
