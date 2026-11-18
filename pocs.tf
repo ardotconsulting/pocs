@@ -38,6 +38,13 @@ locals {
       port        = "8080"
       data_path   = "/usr/app/data" # bases, tables and admin account survive redeploys
     }
+
+    "n8n" = {
+      description       = "Proof of concept for How to Build Your First AI Automation Workflow with n8n"
+      port              = "5678"
+      data_path         = "/home/node/.n8n"      # workflows, credentials and owner account survive redeploys
+      generated_secrets = ["N8N_ENCRYPTION_KEY"] # encrypts stored credentials; OpenTofu generates it
+    }
   }
 }
 
