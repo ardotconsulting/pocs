@@ -16,6 +16,35 @@ env:
   TOFU_VERSION: 1.13.2
 
 jobs:
+  # Agent PRs (branches in this repo): fix formatting instead of failing on it.
+  # Pushes from GITHUB_TOKEN don't trigger new runs, so `check` below doesn't
+  # re-check formatting on these PRs. No OpenTofu secrets here.
+  format:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the formatting fix to the PR branch
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@v2.0.2
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+          tofu_wrapper: false
+      - name: Format and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          tofu fmt -recursive
+          if git diff --quiet; then echo "Already formatted."; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -qam "🎨 tofu fmt"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${HEAD_REF}"
+          echo "::notice::Formatting fixed and pushed to ${HEAD_REF}."
+
   check:
     runs-on: ubuntu-latest
     permissions:
@@ -28,7 +57,9 @@ jobs:
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
           tofu_wrapper: false
-      - run: tofu fmt -check -recursive
+      # The format job fixes formatting on this repo's PR branches.
+      - if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+        run: tofu fmt -check -recursive
       - run: tofu init -backend=false -input=false
       - run: tofu validate
 

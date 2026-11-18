@@ -38,5 +38,5 @@ provider "github" {
 locals {
   # The lab Coolify's own server (h-ac-web-p-001), created by the Coolify install.
   # ponytail: hardcoded, it never changes; import it as a resource if its settings ever need managing.
-  server_uuid = "jqrchg46aq85noy7ec9fsmx0"
+  server_uuid  = "jqrchg46aq85noy7ec9fsmx0"
 }
