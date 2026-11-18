@@ -49,6 +49,12 @@ locals {
       data_path         = "/home/node/.n8n"      # workflows, credentials and owner account survive redeploys
       generated_secrets = ["N8N_ENCRYPTION_KEY"] # encrypts stored credentials; OpenTofu generates it
     }
+
+    "roi-calculator" = {
+      display_name = "ROI Calculator"
+      description  = "Proof of concept for The Real ROI of AI Automation: How to Measure It"
+      port         = "80"
+    }
   }
 }
 
