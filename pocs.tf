@@ -55,6 +55,12 @@ locals {
       description  = "Proof of concept for The Real ROI of AI Automation: How to Measure It"
       port         = "80"
     }
+
+    "automation-audit" = {
+      display_name = "Automation Audit"
+      description  = "Proof of concept for How to Audit Your Business Processes for Automation Opportunities"
+      port         = "80"
+    }
   }
 }
 
