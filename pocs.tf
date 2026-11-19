@@ -70,6 +70,15 @@ locals {
       generated_secrets = ["KEY", "SECRET", "ADMIN_PASSWORD"]
       post_deploy       = "sh /setup-admin.sh"
     }
+
+    "metabase" = {
+      display_name      = "Metabase"
+      description       = "Proof of concept for Self-Hosting Metabase: Open-Source Business Analytics Without SaaS"
+      port              = "3000"
+      data_path         = "/metabase-data"
+      generated_secrets = ["ADMIN_PASSWORD"]
+      post_deploy       = "sh /setup-admin.sh"
+    }
   }
 }
 
