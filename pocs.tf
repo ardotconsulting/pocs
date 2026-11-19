@@ -61,6 +61,15 @@ locals {
       description  = "Proof of concept for How to Audit Your Business Processes for Automation Opportunities"
       port         = "80"
     }
+
+    "directus" = {
+      display_name      = "Directus"
+      description       = "Proof of concept for Self-Hosting Directus: Build Custom Business Apps Without Code"
+      port              = "8055"
+      data_path         = "/directus/data"
+      generated_secrets = ["KEY", "SECRET", "ADMIN_PASSWORD"]
+      post_deploy       = "sh /setup-admin.sh"
+    }
   }
 }
 
