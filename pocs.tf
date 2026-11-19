@@ -79,6 +79,12 @@ locals {
       generated_secrets = ["ADMIN_PASSWORD"]
       post_deploy       = "sh /setup-admin.sh"
     }
+
+    "document-extraction" = {
+      display_name = "Document Extraction"
+      description  = "Proof of concept for AI-Powered Document Extraction with Tesseract and Ollama"
+      port         = "8000"
+    }
   }
 }
 
