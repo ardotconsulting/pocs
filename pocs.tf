@@ -133,12 +133,6 @@ resource "coolify_application" "poc" {
   ports_exposes    = each.value.port
   domains          = "https://${each.key}.poc.ardotconsulting.com"
 
-  # Runs inside the container after each deploy. Apps that give admin to their
-  # first visitor use it to claim the admin through their own setup API with a
-  # generated ADMIN_PASSWORD, seconds after the deploy (scripts must be safe to
-  # re-run). See the README.
-  post_deployment_command = try(each.value.post_deploy, null)
-
   # Checks GitHub's signature on the webhook below. Our token can't read it
   # back, so the provider keeps the value from state.
   manual_webhook_secret_github = random_password.poc_webhook[each.key].result
@@ -151,7 +145,33 @@ resource "coolify_application" "poc" {
       manual_webhook_secret_bitbucket,
       manual_webhook_secret_gitea,
       manual_webhook_secret_gitlab,
+      # Set by terraform_data.post_deploy: the API never returns it, so setting
+      # it here fails every create with "inconsistent result after apply".
+      post_deployment_command,
     ]
+  }
+}
+
+# Runs inside the container after each deploy. Apps that give admin to their
+# first visitor use it to claim the admin through their own setup API with a
+# generated ADMIN_PASSWORD, seconds after the deploy (scripts must be safe to
+# re-run). See the README. Set through the API because Coolify hides the field
+# on read (see coolify_application.poc). COOLIFY_TOKEN comes from the environment.
+resource "terraform_data" "post_deploy" {
+  for_each = { for k, v in local.pocs : k => v.post_deploy if try(v.post_deploy, null) != null }
+
+  triggers_replace = [coolify_application.poc[each.key].uuid, each.value]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      jq -n --arg c "$POST_DEPLOY" '{post_deployment_command: $c}' |
+        curl -sf -m 20 -o /dev/null -X PATCH -H "Authorization: Bearer $COOLIFY_TOKEN" \
+          -H "Content-Type: application/json" --data @- "$APP_URL"
+    EOT
+    environment = {
+      POST_DEPLOY = each.value
+      APP_URL     = "https://coolify.ardotconsulting.com/api/v1/applications/${coolify_application.poc[each.key].uuid}"
+    }
   }
 }
 
