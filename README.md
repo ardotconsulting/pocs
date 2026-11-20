@@ -77,7 +77,9 @@ OpenTofu), and an HTTP monitor in
 listed on its [public status page](https://uptime-kuma.poc.ardotconsulting.com/status/kuma);
 nothing to do by hand. Until the app is serving, the monitor is paused and off the
 status page and the tile is hidden; `activate.yml` switches them on within 15
-minutes of the first successful deploy. Both are named from the slug, or from `display_name` when
+minutes of the first successful deploy. The same job then fails if any active
+monitor is down (a POC, or "Lab server resources": the lab server's CPU, memory
+and disk), and the failed run is GitHub's email to Ryan. Both are named from the slug, or from `display_name` when
 capitalising the slug gets it wrong (`n8n`, `NocoDB`).
 
 Only proofs of concept that run as one container from a `Dockerfile` fit here.

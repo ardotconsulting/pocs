@@ -1,8 +1,10 @@
-name: Activate live POCs
+name: Activate live POCs and check monitors
 
 # New POCs get a paused Uptime Kuma monitor and a hidden Flame tile until their
 # app is serving. Every 15 minutes, switch on the ones that have gone live:
 # resume the monitor, add it to the public status page, make the tile public.
+# Then fail if any active Uptime Kuma monitor is down (a POC, or "Lab server
+# resources": CPU, memory and disk); the failed run is GitHub's email to Ryan.
 on:
   schedule:
     - cron: "*/15 * * * *"
@@ -39,3 +41,10 @@ jobs:
         run: |
           [ -n "$FLAME_PASSWORD" ] || { echo "::notice::FLAME_PASSWORD isn't set in the apply environment; skipping Flame."; exit 0; }
           ./flame-tile.sh activate
+      - name: Check monitors (fails, and so emails Ryan, if any is down)
+        if: ${{ !cancelled() }}
+        env:
+          KUMA_URL: https://uptime-kuma.poc.ardotconsulting.com
+          KUMA_USERNAME: ${{ secrets.KUMA_USERNAME }}
+          KUMA_PASSWORD: ${{ secrets.KUMA_PASSWORD }}
+        run: python3 kuma-monitor.py check
