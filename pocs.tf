@@ -85,6 +85,13 @@ locals {
       description  = "Proof of concept for AI-Powered Document Extraction with Tesseract and Ollama"
       port         = "8000"
     }
+
+    "nextcloud" = {
+      description       = "Proof of concept for Self-Hosting Nextcloud: Replace Google Workspace with Your Own File Sync and Collaboration Platform"
+      port              = "80"
+      data_path         = "/var/www/html"
+      generated_secrets = ["NEXTCLOUD_ADMIN_PASSWORD"]
+    }
   }
 }
 
