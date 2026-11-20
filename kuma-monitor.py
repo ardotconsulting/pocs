@@ -7,11 +7,12 @@ in as the admin. Never prints the password.
 A POC that isn't serving yet (no 2xx) gets a paused monitor that stays off the
 public status page KUMA_STATUS_PAGE; once it's live, the monitor is resumed and
 put in the page's "Proofs of concept" group, keeping everything else on the page
-as it was. `activate` does that for every paused POC monitor that has gone live
-(run on a schedule by .github/workflows/activate.yml). Deleting a monitor takes
+as it was. `activate` does that for every paused POC monitor that has gone live,
+and `check` fails if any active monitor's latest heartbeat is down, which is how
+Ryan gets emailed (both run on a schedule by .github/workflows/activate.yml). Deleting a monitor takes
 it off the page; an emptied group is removed.
 
-    kuma-monitor.py add|remove|activate
+    kuma-monitor.py add|remove|activate|check
 Env: KUMA_URL, KUMA_USERNAME, KUMA_PASSWORD, KUMA_STATUS_PAGE, and for
      add/remove MONITOR_NAME, for add MONITOR_URL
 """
@@ -29,8 +30,8 @@ GROUP = "Proofs of concept"
 MARKER = "Proof of concept (managed by ardotconsulting/pocs)"
 
 action = sys.argv[1] if len(sys.argv) > 1 else ""
-if action not in ("add", "remove", "activate"):
-    sys.exit("usage: kuma-monitor.py add|remove|activate")
+if action not in ("add", "remove", "activate", "check"):
+    sys.exit("usage: kuma-monitor.py add|remove|activate|check")
 
 name = os.environ.get("MONITOR_NAME", "")
 url = os.environ.get("MONITOR_URL", "")
@@ -149,6 +150,20 @@ try:
                 print(f"{m['name']} is live: monitor resumed and added to the status page")
                 woken += 1
         print(f"Activated {woken} monitor(s).")
+    elif action == "check":
+        down = []
+        for m in monitors.values():
+            if not m.get("active") or m.get("type") == "group":
+                continue
+            beats = call("getMonitorBeats", (m["id"], 1)).get("data") or []
+            last = max(beats, key=lambda b: b["time"], default=None)
+            if last and last["status"] == 0:  # 0 down, 1 up, 2 pending, 3 maintenance
+                down.append(f"{m['name']}: {last.get('msg') or 'down'}")
+        for d in down:
+            print(f"::error::{d}")
+        print(f"{len(down)} monitor(s) down.")
+        if down:
+            sys.exit(1)
     else:
         if existing:
             call("deleteMonitor", existing["id"])
