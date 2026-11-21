@@ -92,7 +92,7 @@ locals {
       data_path         = "/var/www/html"
       generated_secrets = ["NEXTCLOUD_ADMIN_PASSWORD"]
     }
-"vaultwarden" = {
+    "vaultwarden" = {
       description       = "Proof of concept for Self-Hosting Vaultwarden: Replace LastPass with Your Own Password Manager"
       port              = "80"
       data_path         = "/data"
