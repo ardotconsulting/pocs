@@ -98,6 +98,15 @@ locals {
       data_path         = "/data"
       generated_secrets = ["ADMIN_TOKEN"]
     }
+
+    "mattermost" = {
+      display_name      = "Mattermost"
+      description       = "Proof of concept for Self-Hosting Mattermost: Replace Slack with Your Own Team Chat Platform"
+      port              = "8065"
+      data_path         = "/mattermost/data"
+      generated_secrets = ["ADMIN_PASSWORD"]
+      post_deploy       = "sh /setup-admin.sh"
+    }
   }
 }
 
