@@ -107,6 +107,12 @@ locals {
       generated_secrets = ["ADMIN_PASSWORD"]
       post_deploy       = "sh /setup-admin.sh"
     }
+
+    "offboarding-checklist" = {
+      display_name = "Offboarding Checklist"
+      description  = "Proof of concept for Automating Employee Offboarding with Open Source Tools"
+      port         = "80"
+    }
   }
 }
 
