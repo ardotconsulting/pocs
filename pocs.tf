@@ -430,5 +430,10 @@ resource "terraform_data" "kuma_monitor" {
       KUMA_STATUS_PAGE = try(self.input.status_page, "kuma")
       MONITOR_NAME     = self.input.name
     }
+    "offboarding-checklist" = {
+      display_name = "Offboarding Checklist"
+      description  = "Proof of concept for Automating Employee Offboarding with Open Source Tools"
+      port         = "80"
+    }
   }
 }
