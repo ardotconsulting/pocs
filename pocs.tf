@@ -113,6 +113,12 @@ locals {
       description  = "Proof of concept for Automating Employee Offboarding with Open Source Tools"
       port         = "80"
     }
+    "customer-onboarding" = {
+      display_name = "Customer Onboarding"
+      description  = "Proof of concept for Automating Customer Onboarding with Open Source Tools"
+      port         = "80"
+    }
+
   }
 }
 
