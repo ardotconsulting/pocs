@@ -17,6 +17,17 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+%{ if postgres != "" ~}
+    # Stands in for the Coolify-managed Postgres the app gets in production.
+    services:
+      postgres:
+        image: ${postgres}
+        env:
+          POSTGRES_USER: poc
+          POSTGRES_PASSWORD: smoke
+          POSTGRES_DB: poc
+        options: --health-cmd "pg_isready -U poc" --health-interval 5s --health-retries 20
+%{ endif ~}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -26,8 +37,12 @@ jobs:
         run: docker build -t poc .
 
       - name: Start and wait for it to answer
+%{ if postgres != "" ~}
+        env:
+          PG_NETWORK: $${{ job.services.postgres.network }}
+%{ endif ~}
         run: |
-          docker run -d --name poc -p 8080:${port}%{ for name in secrets } -e ${name}="$(openssl rand -hex 24)"%{ endfor } poc
+          docker run -d --name poc -p 8080:${port}%{ if postgres != "" } --network "$PG_NETWORK" -e DATABASE_URL=postgres://poc:smoke@postgres:5432/poc%{ endif }%{ for name in secrets } -e ${name}="$(openssl rand -hex 24)"%{ endfor } poc
           for i in $(seq 1 60); do
             code=$(curl -s -o /dev/null -w '%%{http_code}' -m 5 http://localhost:8080/ || true)
             if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then echo "Answered HTTP $code after about $((i * 5))s."; exit 0; fi
