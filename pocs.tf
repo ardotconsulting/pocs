@@ -119,6 +119,15 @@ locals {
       port         = "80"
     }
 
+    "kanboard" = {
+      display_name      = "Kanboard"
+      description       = "Proof of concept for Self-Hosting Kanboard: Replace Trello With Your Own Kanban Board"
+      port              = "80"
+      data_path         = "/var/www/app/data"
+      generated_secrets = ["ADMIN_PASSWORD"]
+      post_deploy       = "sh /setup-admin.sh"
+    }
+
   }
 }
 
