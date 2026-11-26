@@ -38,6 +38,16 @@ and Coolify gets each certificate itself.
    deploy, so it's never live unprotected and nobody handles the value. Ryan
    reads it in Coolify. Never put a secret value in the PR or the repo.
 
+   If the app needs a database, prefer one it can keep in a file under
+   `data_path` (SQLite). If it needs a real server, add
+   `database = "postgres"`: OpenTofu creates a Coolify-managed Postgres 17
+   next to the app (internal only, 256 MB memory limit) and sets
+   `DATABASE_URL=postgres://poc:<password>@<host>:5432/poc` on the app. Read
+   the connection from `DATABASE_URL` (split it into the app's own settings in
+   the `Dockerfile`'s start command if it wants host, user and password
+   separately). The smoke check runs a Postgres service with the same URL
+   shape. Postgres only: MySQL, Redis or several containers don't fit.
+
    Change nothing else in the PR. `main` is protected: Ryan reviews and merges.
    Don't worry about `tofu fmt`: CI fixes the formatting on your branch.
 2. Wait for the apply. After Ryan merges, CI plans, Ryan approves the
@@ -82,8 +92,9 @@ monitor is down (a POC, or "Lab server resources": the lab server's CPU, memory
 and disk), and the failed run is GitHub's email to Ryan. Both are named from the slug, or from `display_name` when
 capitalising the slug gets it wrong (`n8n`, `NocoDB`).
 
-Only proofs of concept that run as one container from a `Dockerfile` fit here.
-Anything that needs a database, another domain or other infrastructure: open
+Only proofs of concept that run as one container from a `Dockerfile` fit here,
+with at most a managed Postgres (`database = "postgres"`). Anything that needs
+another database, more containers, another domain or other infrastructure: open
 an issue in this repo for Ryan instead.
 
 ## Applying (Ryan)
